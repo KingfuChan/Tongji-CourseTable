@@ -2,6 +2,8 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import requests
 
+# 代码已经能实现登录+获取课表，但存在ids未知的问题，考虑是否可以不用selenium
+
 
 def get_cookies(user_id, user_password):
     opt = Options()
@@ -31,7 +33,9 @@ def get_cookies(user_id, user_password):
 
 
 if __name__ == "__main__":
-    JSID, server = get_cookies('', '')  # 填写账号密码
+    user_id = input("Enter ID>>>")
+    user_pw = input("Enter Password>>>")
+    JSID, server = get_cookies(user_id, user_pw)  # 填写账号密码
     url = "http://4m3.tongji.edu.cn/eams/courseTableForStd!courseTable.action"
     headers = {
         'Accept': '*/*',
@@ -46,7 +50,7 @@ if __name__ == "__main__":
         'ignoreHead': '1',
         'setting.kind': 'std',
         'startWeek': '1',
-        'semester.id': '106',
+        'semester.id': '108',
         'ids': '5836063678'  # 推测与用户挂钩，每个人对应不同的id
     }
     req = requests.post(url, data=data, headers=headers, verify=False)
