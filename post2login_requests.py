@@ -1,8 +1,8 @@
 import requests
 
 data = {
-    "Ecom_User_ID": '1851175',
-    "Ecom_Password": 'CjfEki0420',
+    "Ecom_User_ID": '',  # 待填
+    "Ecom_Password": '',
     "Txtidcode": ''
 }
 r = requests.get(

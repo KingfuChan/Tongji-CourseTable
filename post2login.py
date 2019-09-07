@@ -7,8 +7,8 @@ loginurl = "https://ids.tongji.edu.cn:8443/nidp/saml2/sso?sid=0&sid=0"
 headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36'}
 
-userid = '1851175'
-userpw = 'CjfEki0420'
+userid = ''  # 待填
+userpw = ''
 params = {
     'option': 'credential',
     'Ecom_User_ID': userid,

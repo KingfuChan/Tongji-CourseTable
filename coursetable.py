@@ -2,6 +2,8 @@ import time
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
+# 考虑直接post http://4m3.tongji.edu.cn/eams/courseTableForStd!courseTable.action
+
 
 class ClassObject(object):
 
@@ -11,6 +13,9 @@ class ClassObject(object):
 
         # 处理周数信息
         week = str(self.week)
+        if not '-' in week:  # 排除只有某星期上课
+            week = (week, week)
+
         if '单' in week:  # 分辨单双周课
             self.oddeven = 'odd'
             week = week.lstrip('单[').rstrip(']').split('-')
@@ -102,7 +107,7 @@ def get_classes(user_id, user_password):
 
     # 读取课表内容
     schedule_table = browser.find_element_by_class_name('grid').find_element_by_tag_name(
-        'table').find_element_by_tag_name('tbody').find_elements_by_tag_name('tr')
+        'table').find_element_by_tag_name('tbody').find_elements_by_tag_name('tr')  # 不知道为什么出错
     allclasses = []
     for st in schedule_table:
         c = CourseObject(st)

@@ -31,7 +31,7 @@ def get_cookies(user_id, user_password):
 
 
 if __name__ == "__main__":
-    JSID, server = get_cookies('1851175', 'CjfEki0420')
+    JSID, server = get_cookies('', '')  # 填写账号密码
     url = "http://4m3.tongji.edu.cn/eams/courseTableForStd!courseTable.action"
     headers = {
         'Accept': '*/*',
