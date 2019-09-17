@@ -1,98 +1,27 @@
 import re
-from datetime import date, timedelta
-import requests
+from datetime import datetime, timedelta
 from getpass import getpass
+# 以下为第三方库
+import requests
 from bs4 import BeautifulSoup
-from icalendar import Calendar, Event
+from icalendar import Calendar, Event, vRecur
 
+
+"""！！！变更学期后此处需更改！！！"""
 semester_id = 108  # 2019学年第1学期，其他学期对应数值可在网页中元素审查得知
-semester_start_date = date(2019, 9, 2)  # 开学日期2019.09.02
+semester_start_date = datetime(2019, 9, 2)  # 开学日期2019.09.02周一
+"""！！！变更学期后此处需更改！！！"""
 
-
-def generate_recurrence_rule(interval, day, lastdate):
-    day_dict = {'星期一': 'MO', '星期二': 'TU', '星期三': 'WE',
-                '星期四': 'TH', '星期五': 'FR', '星期六': 'SA', '星期日': 'SU', }
-    freq = "FREQ=WEEKLY"
-    until = lastdate.strftime("%Y%m%d")  # 最后一周结束
-    until = f"UNTIL={until}T235959"
-    interval = f"INTERVAL={interval}"
-    byday = f"BYDAY={day_dict[day]}"
-    return ';'.join((freq, until, interval, byday))
-
-
-def proceed_courses(name, schedules):
-    """
-    返回一个包含课程名称、授课老师、上课地点、上下课时间（、重复规律）的字典，
-    字典中字符串格式已调整至iCalendar RFC 5455规则，
-    其中如果课程有重复，则上下课时间基于第一次课所在周数的星期一，通过重复规律BYDAY属性反映星期几上课。
-    """
-    info = schedules.rsplit(' ')
-    teacher = info[0]
-    day = info[1]
-    time = info[2]
-    week = info[3]
-    place = info[4]
-
-    course_dict = {  # 初始化将要返回的字典
-        "name": name,
-        "teacher": teacher,
-        "place": place,
-    }
-
-    # 处理上课时间
-    startdict = {  # 上课时间
-        1: '080000', 2: '085000', 3: '100000', 4: '105000',
-        5: '133000', 6: '142000', 7: '153000', 8: '162000',
-        9: '175000', 10: '190000', 11: '195000', 12: '204000',
-    }
-    enddict = {  # 下课时间
-        1: '084500', 2: '093500', 3: '104500', 4: '113500',
-        5: '141500', 6: '150500', 7: '161500', 8: '170500',
-        9: '183500', 10: '194500', 11: '203500', 12: '212500',
-    }
-    if '-' in time:  # 避免出现只有一节课的情况（未发现）
-        classsindex = str(time).split('-')
-        startclass = int(classsindex[0])
-        endclass = int(classsindex[1])
-    else:
-        startclass = int(time)
-        endclass = startclass
-    starttime = startdict[startclass]
-    endtime = enddict[endclass]
-
-    # 处理周数信息，并转化iCalendar recurrence
-    if not '-' in week:  # 只有某星期上课
-        w = int(week.lstrip('[').rstrip(']'))
-        firstdate = (timedelta(weeks=w-1) + semester_start_date
-                     ).strftime("%Y%m%d")
-    else:
-
-        if '单'in week:
-            startstop = week.lstrip('单[').rstrip(']').split('-')
-            interval = 2
-        elif '双' in week:
-            startstop = week.lstrip('双[').rstrip(']').split('-')
-            interval = 2
-        else:  # 每周都上课
-            startstop = week.lstrip('[').rstrip(']').split('-')
-            interval = 1
-
-        firstdate = (
-            timedelta(weeks=int(startstop[0])-1) + semester_start_date).strftime("%Y%m%d")
-        lastdate = timedelta(
-            weeks=int(startstop[1])-1, days=6) + semester_start_date
-        course_dict['RRULE'] = generate_recurrence_rule(
-            interval, day, lastdate)
-
-    course_dict['DTSTART'] = firstdate + 'T' + starttime
-    course_dict['DTEND'] = firstdate + 'T' + endtime
-    print(course_dict)
-    return course_dict
+# 星期几对照字典
+day_dict_abbr = {'星期一': 'MO', '星期二': 'TU', '星期三': 'WE',  # 用于vRecur
+                 '星期四': 'TH', '星期五': 'FR', '星期六': 'SA', '星期日': 'SU', }
+day_dict_num = {'星期一': 1, '星期二': 2, '星期三': 3,  # 用于timedelta
+                '星期四': 4, '星期五': 5, '星期六': 6, '星期日': 7, }
 
 
 def get_user_info():
-    userid = input("请输入同济综合服务门户用户名>>>")
-    password = getpass("请输入登录口令/密码。输入内容不显示，输入后请直接按回车键>>>")
+    userid = input("请输入同济综合服务门户用户名（学号）>")
+    password = getpass("请输入登录口令/密码。输入内容不显示，输入后请直接按回车键>")
     return userid, password
 
 
@@ -107,7 +36,7 @@ def login(session, init_url):
     """
 
     # 1. GET init_url     -> forward to sso_url
-    print("登录前准备...")
+    print("正在连接到4m3.tongji.edu.cn...")
     res = session.get(init_url)
     soup = BeautifulSoup(res.content, "html.parser")
     sso_url = soup.find('meta')['content'][6:]
@@ -184,7 +113,105 @@ def get_course_info(session, semester_id):
     return table_html
 
 
-def convert_to_ical(html):
+# 以上为4m3相关，以下为日历相关
+
+
+def generate_recurrence_rule(interval, day, lastdate):
+    freq = "WEEKLY"
+    until = lastdate + timedelta(hours=23, minutes=59, seconds=59)  # 最后一周结束
+    byday = day_dict_abbr[day]
+    return vRecur(freq=freq, until=until, interval=interval, byday=byday)
+
+
+def generate_ical_event(class_dict):
+    event = Event()
+    event.add('SUMMARY', class_dict['name'])
+    event.add('DTSTART', class_dict['DTSTART'])
+    event.add('DTEND', class_dict['DTEND'])
+
+    if 'RRULE' in class_dict.keys():
+        event.add('RRULE', class_dict['RRULE'])
+
+    event.add('LOCATION', class_dict['place'])
+    description = f"授课教师：{class_dict['teacher']}"
+    event.add('description', description)
+    return event
+
+
+def process_classes(name, schedules):
+    """
+    返回一个包含课程名称、授课老师、上课地点、上下课时间（、重复规律）的字典，
+    所有日期和时间都为python datetime库的datetime对象，
+    其中如果课程有重复，则上下课时间基于第一次课所在周数的星期一，通过重复规律BYDAY属性反映星期几上课。
+    """
+    info = schedules.rsplit(' ')
+    teacher = info[0]
+    day = info[1]
+    classindex = info[2]
+    week = info[3]
+    place = info[4]
+
+    class_dict = {  # 初始化将要返回的字典
+        "name": name,
+        "teacher": teacher,
+        "place": place,
+    }
+
+    # 处理上课时间
+    startdict = {  # 上课时间（时，分）
+        1: (8, 0), 2: (8, 50), 3: (10, 0), 4: (10, 50),
+        5: (13, 30), 6: (14, 20), 7: (15, 30), 8: (16, 20),
+        9: (17, 50), 10: (19, 00), 11: (19, 50), 12: (20, 40),
+    }
+    enddict = {  # 下课时间（时，分）
+        1: (8, 45), 2: (9, 35), 3: (10, 45), 4: (11, 35),
+        5: (14, 15), 6: (15, 5), 7: (16, 15), 8: (17, 5),
+        9: (18, 35), 10: (19, 45), 11: (20, 35), 12: (21, 25),
+    }
+    if '-' in classindex:
+        classsindex = str(classindex).split('-')
+        startclass = int(classsindex[0])
+        endclass = int(classsindex[1])
+    else:  # 避免出现只有一节课的情况（未发现）
+        startclass = int(classindex)
+        endclass = startclass
+    h, m = startdict[startclass]
+    starttime = timedelta(hours=h, minutes=m)
+    h, m = enddict[endclass]
+    endtime = timedelta(hours=h, minutes=m)
+
+    # 处理周数信息，并转化iCalendar recurrence
+    if not '-' in week:  # 只有某星期上课
+        w = int(week.lstrip('[').rstrip(']'))
+        firstdate = timedelta(
+            weeks=w-1, days=day_dict_num[day]-1) + semester_start_date
+    else:
+
+        if '单'in week:
+            startstop = week.lstrip('单[').rstrip(']').split('-')
+            interval = 2
+        elif '双' in week:
+            startstop = week.lstrip('双[').rstrip(']').split('-')
+            interval = 2
+        else:  # 每周都上课
+            startstop = week.lstrip('[').rstrip(']').split('-')
+            interval = 1
+
+        firstdate = timedelta(weeks=int(startstop[0])-1) + semester_start_date
+        lastdate = timedelta(
+            weeks=int(startstop[1]), days=-1) + semester_start_date
+        class_dict['RRULE'] = generate_recurrence_rule(
+            interval, day, lastdate)
+
+    class_dict['DTSTART'] = firstdate + starttime
+    class_dict['DTEND'] = firstdate + endtime
+    return class_dict
+
+
+def make_ics(html):
+    cal = Calendar()
+    cal.add('version', 2.0)
+
     soup = BeautifulSoup(html, "html.parser")
     courses = soup.find('tbody').find_all('tr')
     for r in courses:
@@ -193,16 +220,26 @@ def convert_to_ical(html):
         schedules = list(
             filter(None, [l.strip() for l in cells[8].get_text().strip().splitlines()]))
         for s in schedules:
-            proceed_courses(name, s)
+            classdict = process_classes(name, s)
+            cal.add_component(generate_ical_event(classdict))
+
+    filename = input("请输入保存的文件名>")
+    with open(f'{filename}.ics', 'wb') as ics:
+        ics.write(cal.to_ical())
+    print(f"iCalendar日历文件已导出到{filename}.ics中！")
 
 
 def main():
-    #session = requests.Session()
-    #login(session, "http://4m3.tongji.edu.cn/eams/samlCheck")
-    #courses = get_course_info(session, semester_id)
-    # convert_to_ical(courses)
-    convert_to_ical(open("test.html", 'r', encoding='utf-8').read())
-    # _pause = input("按回车键退出！")
+    try:
+        session = requests.Session()
+        login(session, "http://4m3.tongji.edu.cn/eams/samlCheck")
+        courses = get_course_info(session, semester_id)
+        make_ics(courses)
+        # make_ics(open("test.html", 'r', encoding='utf-8').read()) 调试用
+    except Exception as err:
+        print("发生错误：\n"+repr(err))
+    finally:
+        _pause = input("按回车键退出！")
 
 
 if __name__ == "__main__":
