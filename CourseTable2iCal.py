@@ -108,7 +108,6 @@ def get_course_info(session, semester_id):
     res = session.post(table_url, data=data)
     soup = BeautifulSoup(res.content, "html.parser")
     table_html = soup.prettify(encoding='utf-8')
-    open("test.html", 'wb').write(table_html)  # 用于调试
     print("课表信息已获取！")
     return table_html
 
@@ -229,16 +228,28 @@ def make_ics(html):
     print(f"iCalendar日历文件已导出到{filename}.ics中！")
 
 
-def main():
+def main(step=0):
+    global session  # 保留按步骤重试的会话
     try:
-        session = requests.Session()
-        login(session, "http://4m3.tongji.edu.cn/eams/samlCheck")
-        courses = get_course_info(session, semester_id)
-        make_ics(courses)
-        # make_ics(open("test.html", 'r', encoding='utf-8').read()) 调试用
+        if step == 0:
+            session = requests.Session()
+            step += 1
+        if step == 1:
+            login(session, "http://4m3.tongji.edu.cn/eams/samlCheck")
+            step += 1
+        if step == 2:
+            courses = get_course_info(session, semester_id)
+            step += 1
+        if step == 3:
+            make_ics(courses)
     except Exception as err:
         print("发生错误：\n"+repr(err))
-    finally:
+        retry = input("是否重试？(y/n)>")
+        if retry.lower() == 'y':
+            return main(step)
+        else:
+            return 0
+    else:
         _pause = input("按回车键退出！")
 
 
