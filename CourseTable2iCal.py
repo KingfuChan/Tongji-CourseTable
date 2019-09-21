@@ -1,3 +1,17 @@
+"""
+Tongji-CourseTable
+————获取同济大学课程表并编写为iCalendar文件
+
+工程思路：
+1、模拟登录4m3.tongji.edu.cn并抓取课程表。
+2、将课程表转换为iCalendar格式。
+用到的第三方库：requests, beautifulsoup4，icalendar，运行前请先使用pip安装。
+iCalendar文件导入手机或电脑的方法请参考 https://i.scnu.edu.cn/ical/doc
+
+https://github.com/KingfuChan/Tongji-CourseTable
+"""
+
+
 import re
 from datetime import datetime, timedelta
 from getpass import getpass
@@ -233,24 +247,24 @@ def main(step=0):
     try:
         if step == 0:
             session = requests.Session()
-            step += 1
-        if step == 1:
             login(session, "http://4m3.tongji.edu.cn/eams/samlCheck")
             step += 1
-        if step == 2:
+        if step == 1:
             courses = get_course_info(session, semester_id)
             step += 1
-        if step == 3:
+        if step == 2:
             make_ics(courses)
+            step += 1
     except Exception as err:
         print("发生错误：\n"+repr(err))
         retry = input("是否重试？(y/n)>")
         if retry.lower() == 'y':
             return main(step)
         else:
-            return 0
+            return step
     else:
         _pause = input("按回车键退出！")
+        return step
 
 
 if __name__ == "__main__":
