@@ -27,8 +27,6 @@ semester_start_date = datetime(2019, 9, 2)  # 开学日期2019.09.02周一
 """！！！变更学期后此处需更改！！！"""
 
 # 星期几对照字典
-day_dict_abbr = {'星期一': 'MO', '星期二': 'TU', '星期三': 'WE',  # 用于vRecur
-                 '星期四': 'TH', '星期五': 'FR', '星期六': 'SA', '星期日': 'SU', }
 day_dict_num = {'星期一': 1, '星期二': 2, '星期三': 3,  # 用于timedelta
                 '星期四': 4, '星期五': 5, '星期六': 6, '星期日': 7, }
 
@@ -129,11 +127,9 @@ def get_course_info(session, semester_id):
 # 以上为4m3相关，以下为日历相关
 
 
-def generate_recurrence_rule(interval, day, lastdate):
-    freq = "WEEKLY"
+def generate_recurrence_rule(interval, lastdate):
     until = lastdate + timedelta(hours=23, minutes=59, seconds=59)  # 最后一周结束
-    byday = day_dict_abbr[day]
-    return vRecur(freq=freq, until=until, interval=interval, byday=byday)
+    return vRecur(freq="WEEKLY", until=until, interval=interval)
 
 
 def generate_ical_event(class_dict):
@@ -210,11 +206,11 @@ def process_classes(name, schedules):
             startstop = week.lstrip('[').rstrip(']').split('-')
             interval = 1
 
-        firstdate = timedelta(weeks=int(startstop[0])-1) + semester_start_date
+        firstdate = timedelta(
+            weeks=int(startstop[0])-1, days=day_dict_num[day]-1) + semester_start_date
         lastdate = timedelta(
-            weeks=int(startstop[1]), days=-1) + semester_start_date
-        class_dict['RRULE'] = generate_recurrence_rule(
-            interval, day, lastdate)
+            weeks=int(startstop[1])-1, days=day_dict_num[day]-1) + semester_start_date
+        class_dict['RRULE'] = generate_recurrence_rule(interval, lastdate)
 
     class_dict['DTSTART'] = firstdate + starttime
     class_dict['DTEND'] = firstdate + endtime
@@ -242,6 +238,7 @@ def make_ics(html):
     print(f"iCalendar日历文件已导出到{filename}.ics中！")
 
 
+# 主函数
 def main(step=0):
     global session  # 保留按步骤重试的会话
     try:
