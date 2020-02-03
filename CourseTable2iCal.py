@@ -22,8 +22,8 @@ from icalendar import Calendar, Event, vRecur
 
 
 """！！！变更学期后此处需更改！！！"""
-semester_id = 108  # 2019学年第1学期，其他学期对应数值可在网页中元素审查得知
-semester_start_date = datetime(2019, 9, 2)  # 开学日期2019.09.02周一
+semester_id = 109  # 2019学年第2学期，其他学期对应数值可在网页中元素审查得知
+semester_start_date = datetime(2020, 2, 17)  # 开学日期2020年2月17日星期一
 """！！！变更学期后此处需更改！！！"""
 
 # 星期几对照字典
