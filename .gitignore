@@ -1,9 +1,5 @@
-CJF_1909.ics
-CJF_190925.ics
-CJF_200203.ics
-CJF_200228.ics
-icalendar.pdf
-iCloud上传后重新下载参考.ics
-LICENSE.bak
-htmlsamples/test_cjf.html
-htmlsamples/test_wzy.html
+*.ics
+*.pdf
+/.vscode/
+/htmlsamples/
+/useless/
