@@ -1,5 +1,8 @@
 *.ics
 *.pdf
+*.jpg
+*.json
 /.vscode/
 /htmlsamples/
 /useless/
+/.vs
