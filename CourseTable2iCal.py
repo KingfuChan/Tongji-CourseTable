@@ -6,7 +6,6 @@ Tongji-CourseTable
 1、登录并从1.tongji.edu.cn获取课程表
 2、将课程表转换为iCalendar格式。
 用到的第三方库：requests, beautifulsoup4，icalendar，运行前请先使用pip安装。
-iCalendar文件导入手机或电脑的方法请参考 https://i.scnu.edu.cn/ical/doc
 
 https://github.com/KingfuChan/Tongji-CourseTable
 """
@@ -165,11 +164,12 @@ def process_course(course):
         return  # TODO:如为None则为实践类课程？
 
     rt = []
-    description = "课号：{}\n授课教师：{}\n学分：{}\n考试/查：{}\n备注：{}"
+    description = "课号：{}\n课程授课教师：{}\n本次课授课教师：{}\n学分：{}\n考试/查：{}\n备注：{}"
 
     for timetable in course["timeTableList"]:
 
         dscr = description.format(course["classCode"],
+                                  course["teacherName"],
                                   timetable["teacherName"],
                                   course["credits"],
                                   course["assessmentModeI18n"],

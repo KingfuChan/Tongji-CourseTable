@@ -2,6 +2,7 @@
 *.pdf
 *.jpg
 *.json
+*.js
 /.vscode/
 /htmlsamples/
 /useless/
